@@ -1,0 +1,44 @@
+---
+title: "TheSimpsons"
+author: "Jan Gwara"
+date: "2025-02-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(hrbrthemes)
+```
+
+## Data
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2025-02-04')
+simpsons_episodes <- tuesdata$simpsons_episodes
+```
+
+```{r}
+head(simpsons_episodes)
+```
+
+```{r}
+simpsons_episodes  %>% 
+  ggplot(aes(x=imdb_rating, y=imdb_votes)) +
+  geom_point() +
+  geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +
+  theme_ipsum()
+```
+
+```{r}
+simpsons_episodes %>%
+  ggplot(aes(x=season, y=episode, size=views, color=)) +
+  geom_point(alpha=0.5) +
+  scale_size(range = c(.1, 24))
+
+```
