@@ -2,7 +2,7 @@
 title: "TheSimpsons"
 author: "Jan Gwara"
 date: "2025-02-01"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
