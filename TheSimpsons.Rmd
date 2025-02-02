@@ -13,14 +13,38 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
+library(gganimate)
+library(nycflights13)
+library(transformr)
+library(sf)
+library(viridis)
+library(ggridges)
+library(maps)
+library(mapproj)
+library(tidytext)
+library(wordcloud2)
+library(reshape2)
+library(treemap)
+library(fmsb)
+library(igraph)
+library(wesanderson)
 library(hrbrthemes)
+library(ggpie)
+library(tidyverse)
+library(ggraph)
 ```
 
-## Data
+## Data Tidying
 
 ```{r}
 tuesdata <- tidytuesdayR::tt_load('2025-02-04')
+
+```
+
+```{r}
 simpsons_episodes <- tuesdata$simpsons_episodes
+simpsons_characters <- tuesdata$simpsons_characters
+simpsons_locations <- tuesdata$simpsons_locations
 ```
 
 ```{r}
@@ -28,8 +52,28 @@ head(simpsons_episodes)
 ```
 
 ```{r}
+head(simpsons_characters)
+```
+
+```{r}
+head(simpsons_locations)
+```
+
+```{r}
+top_episodes <- simpsons_episodes %>%
+  arrange(desc(us_viewers_in_millions))
+```
+
+```{r}
+ep10_per_season <- simpsons_episodes %>%
+  filter(number_in_season == 10)
+```
+
+## Visuals
+
+```{r}
 simpsons_episodes  %>% 
-  ggplot(aes(x=imdb_rating, y=imdb_votes)) +
+  ggplot(aes(x=imdb_rating, y=imdb_votes, color=views)) +
   geom_point() +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +
   theme_ipsum()
@@ -37,8 +81,109 @@ simpsons_episodes  %>%
 
 ```{r}
 simpsons_episodes %>%
-  ggplot(aes(x=season, y=episode, size=views, color=)) +
+  ggplot(aes(x=season, y=number_in_season, size=us_viewers_in_millions, color=imdb_rating)) +
   geom_point(alpha=0.5) +
-  scale_size(range = c(.1, 24))
+  scale_size(range = c(.1, 24)) +
+  theme_minimal() +
+  scale_color_gradient(low="blue", high="red")
+```
 
+```{r}
+ggplot(top_episodes, aes(x = reorder(title, us_viewers_in_millions), y = us_viewers_in_millions, fill = season)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Top 10 Most Watched Simpsons Episodes", x = "Episode", y = "Views") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(ep10_per_season, aes(x = factor(season), y = us_viewers_in_millions, fill = season)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Episode 10 Viewership Across Seasons", x = "Season", y = "Views") +
+  theme_minimal()
+```
+
+```{r}
+ep10_names <- simpsons_episodes %>%
+  filter(number_in_season %in% c(9, 10, 11)) %>%
+  select(season, number_in_season, title) %>%
+  arrange(season, number_in_season)
+
+print(ep10_names)
+```
+
+```{r}
+episode_words <- simpsons_episodes %>%
+  unnest_tokens(word, title) %>%
+  count(word, sort = TRUE) %>%
+  filter(nchar(word) > 3)
+
+# Create the word cloud
+wordcloud2(episode_words, color = "darkblue", backgroundColor = "lightblue", size = 0.5)
+```
+
+```{r}
+simpsons_characters %>%
+  filter(!is.na(gender)) %>%
+  count(gender) %>%
+  ggplot(aes(x = "", y = n, fill = gender)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  theme_void()
+```
+
+```{r}
+location_names <- simpsons_locations %>%
+  unnest_tokens(word, normalized_name) %>%
+  count(word, sort = TRUE) %>%
+  filter(nchar(word) > 3)
+
+# Create the word cloud
+wordcloud2(location_names, color = "darkblue", backgroundColor = "lightblue", size = 0.5)
+```
+
+```{r}
+top_words_df <- simpsons_locations %>%
+  unnest_tokens(word, normalized_name) %>%
+  filter(!word %in% stop_words$word) %>%
+  count(word, sort = TRUE) %>%
+  slice_max(n, n = 10)
+
+ggplot(top_words_df, aes(x = reorder(word, n), y = n, fill = word)) +
+  geom_col() +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Top 10 Most Common Words in Location Names",
+       x = "Word",
+       y = "Frequency") +
+  theme(legend.position = "none")
+```
+
+```{r}
+top_words_df <- simpsons_locations %>%
+  unnest_tokens(word, normalized_name) %>%
+  filter(!word %in% stop_words$word) %>%
+  count(word, sort = TRUE) %>%
+  slice_max(n, n = 100)
+
+
+bigrams_df <- simpsons_locations %>%
+  unnest_tokens(bigram, normalized_name, token = "ngrams", n = 2) %>%
+  separate(bigram, into = c("word1", "word2"), sep = " ") %>%
+  filter(word1 %in% top_words_df$word & word2 %in% top_words_df$word) %>%
+  count(word1, word2, sort = TRUE) %>%
+  filter(n > 1)
+
+bigram_graph <- graph_from_data_frame(bigrams_df, directed = TRUE)
+
+ggraph(bigram_graph, layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n), 
+                 arrow = arrow(type = "open", length = unit(2, "mm")), 
+                 end_cap = circle(2, "mm"),
+                 color = "darkred",
+                 show.legend = TRUE) +
+  geom_node_point(color = "yellow", size = 3) +
+  geom_node_text(aes(label = name), vjust = 1.5, size = 3) +
+  theme_void() +
+  labs(title = "Network of Common Word Pairs in Location Names")
 ```
