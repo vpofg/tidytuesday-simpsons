@@ -2,7 +2,7 @@
 title: "TheSimpsons"
 author: "Jan Gwara"
 date: "2025-02-01"
-output: github_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -32,6 +32,7 @@ library(hrbrthemes)
 library(ggpie)
 library(tidyverse)
 library(ggraph)
+library(RColorBrewer)
 ```
 
 ## Data Tidying
@@ -61,7 +62,8 @@ head(simpsons_locations)
 
 ```{r}
 top_episodes <- simpsons_episodes %>%
-  arrange(desc(us_viewers_in_millions))
+  arrange(desc(us_viewers_in_millions)) %>%
+  slice_max(order_by = us_viewers_in_millions, n = 10)
 ```
 
 ```{r}
@@ -88,18 +90,30 @@ simpsons_episodes %>%
   scale_color_gradient(low="blue", high="red")
 ```
 
-```{r}
 ggplot(top_episodes, aes(x = reorder(title, us_viewers_in_millions), y = us_viewers_in_millions, fill = season)) +
+
+geom_bar(stat = "identity") +
+
+coord_flip() +
+
+labs(title = "Top 10 Most Watched Simpsons Episodes", x = "Episode", y = "Views") +
+
+scale_fill_brewer(palette = "Spectral")
+
+```{r}
+ggplot(top_episodes, aes(x = reorder(title, us_viewers_in_millions), y = us_viewers_in_millions, fill = factor(season))) +
   geom_bar(stat = "identity") +
   coord_flip() +
-  labs(title = "Top 10 Most Watched Simpsons Episodes", x = "Episode", y = "Views") +
+  labs(title = "Top 10 Most Watched Simpsons Episodes", x = "Episode", y = "Viewers (millions)", fill = "Season") +
+  scale_fill_brewer(palette = "BrBG") +
   theme_minimal()
 ```
 
 ```{r}
-ggplot(ep10_per_season, aes(x = factor(season), y = us_viewers_in_millions, fill = season)) +
+ggplot(ep10_per_season, aes(x = factor(season), y = us_viewers_in_millions, fill = factor(imdb_rating))) +
   geom_bar(stat = "identity") +
   labs(title = "Episode 10 Viewership Across Seasons", x = "Season", y = "Views") +
+  scale_fill_brewer(palette = "Set3")
   theme_minimal()
 ```
 
@@ -108,8 +122,6 @@ ep10_names <- simpsons_episodes %>%
   filter(number_in_season %in% c(9, 10, 11)) %>%
   select(season, number_in_season, title) %>%
   arrange(season, number_in_season)
-
-print(ep10_names)
 ```
 
 ```{r}
@@ -139,7 +151,7 @@ location_names <- simpsons_locations %>%
   filter(nchar(word) > 3)
 
 # Create the word cloud
-wordcloud2(location_names, color = "darkblue", backgroundColor = "lightblue", size = 0.5)
+wordcloud2(location_names, color = "darkblue", backgroundColor = "lightblue", size = 0.6)
 ```
 
 ```{r}
