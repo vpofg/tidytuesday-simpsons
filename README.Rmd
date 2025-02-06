@@ -46,6 +46,7 @@ tuesdata <- tidytuesdayR::tt_load('2025-02-04')
 simpsons_episodes <- tuesdata$simpsons_episodes
 simpsons_characters <- tuesdata$simpsons_characters
 simpsons_locations <- tuesdata$simpsons_locations
+simpsons_script <- tuesdata$simpsons_script_lines
 ```
 
 ```{r}
@@ -58,6 +59,10 @@ head(simpsons_characters)
 
 ```{r}
 head(simpsons_locations)
+```
+
+```{r}
+head(simpsons_script)
 ```
 
 ```{r}
@@ -125,13 +130,13 @@ ep10_names <- simpsons_episodes %>%
 ```
 
 ```{r}
-episode_words <- simpsons_episodes %>%
+episode_title_words <- simpsons_episodes %>%
   unnest_tokens(word, title) %>%
   count(word, sort = TRUE) %>%
   filter(nchar(word) > 3)
 
 # Create the word cloud
-wordcloud2(episode_words, color = "darkblue", backgroundColor = "lightblue", size = 0.5)
+wordcloud2(episode_title_words, color = "darkblue", backgroundColor = "lightblue", size = 0.5)
 ```
 
 ```{r}
